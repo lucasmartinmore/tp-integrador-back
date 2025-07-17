@@ -1,22 +1,32 @@
-//Middlewares////////
+// Middleware logger para analizar y logear todas las solicitudes
 const loggerUrl = (req, res, next) => {
-    console.log(`[${new Date().toLocaleString()}]`)
+    // console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`); En caso de no registrar la zona horaria usaremos
+    console.log(`[${new Date().toLocaleString()}] ${req.method} ${req.url}`);
     next();
-}
+};
 
-//Middleware de ruta, para validar id
-const valditeId = (req, res, next) => {
-    const id = req.params.id;
 
-    if(!id || isNaN(id))
-    {
+//////////////////////////
+// Middlewares de ruta //
+
+// Middleware de ruta donde validaremos el id
+const validateId = (req, res, next) => {
+    const id = req.params.id; // o const { id } = req.params
+
+    // En caso de no existir id o de que este no sea un numero
+    if(!id || isNaN(id)) {
         return res.status(400).json({
-            error: "El id debe ser un numero valido"
+            error: "El ID debe ser un numero"
         })
     }
-    //Parseamos el id a numero entero
-    req.id = parseInt(id,10);
+
+    // Convertimos el parametro id a un numero entero (integer) de base 10, decimal
+    req.id = parseInt(id, 10);
+
     next();
 }
 
-export { loggerUrl, valditeId }
+export {
+    loggerUrl,
+    validateId
+}
