@@ -7,7 +7,13 @@
     <hr>
 
     <main id="contenedor-get">
-        <script src="./js/eliminar.js"></script>
+        <!-- 
+        Este es el formulario HTML para consultar y luego eliminar un producto.
+        Permite al usuario buscar un producto por su ID. Una vez encontrado,
+        se muestra la información del producto junto con un botón para eliminarlo.
+        El script JavaScript incrustado maneja la consulta, la confirmación de eliminación,
+        y la comunicación con la API DELETE del backend.
+        -->
         <div id="productos-container" class="crudForm-container">
             <h2>Consultar producto</h2>
 
@@ -26,3 +32,115 @@
     </main>
 
 <%- include("partials/footer.ejs") %>
+
+<!-- Por tema legibilidad, incorporamos aca el JavaScript -->
+<script>
+    const url = "http://localhost:3000/api";
+    let getProduct_form;
+    let getId_lista;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        getProduct_form = document.getElementById("getProduct-form");
+        getId_lista = document.getElementById("getId-list");
+
+        if (!getProduct_form) {
+            console.error("Error: Elemento 'getProduct-form' no encontrado.");
+            return;
+        }
+        if (!getId_lista) {
+            console.error("Error: Elemento 'getId-list' no encontrado.");
+            return;
+        }
+
+        getProduct_form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            try {
+                getId_lista.innerHTML = "<p>Cargando producto...</p>";
+
+                let formData = new FormData(event.target);
+                let data = Object.fromEntries(formData.entries());
+                let idProd = data.idProd.trim();
+
+                if (!idProd) {
+                    throw new Error(`El ID del producto no puede estar vacío.`);
+                }
+
+                let response = await fetch(`${url}/products/${idProd}`);
+                let datos = await response.json();
+
+                if (!response.ok || !datos.payload || datos.payload.length === 0) {
+                    getId_lista.innerHTML = `<p style="color: orange;">Producto con ID ${idProd} no encontrado.</p>`;
+                    console.warn(`Producto con ID ${idProd} no encontrado.`);
+                    return;
+                }
+
+                let producto = datos.payload[0];
+                if (!producto || typeof producto !== 'object') {
+                    throw new Error("Formato de datos de producto inesperado de la API.");
+                }
+
+                const imageUrl = producto.imagen_producto && producto.imagen_producto !== '' ? producto.imagen_producto : '/img/placeholder.png';
+                const imageAlt = producto.nombre_producto || 'Producto';
+
+                let htmlProducto = `
+                    <li class="li-listados productos-listados">
+                        <div class="li-listados_datos">
+                            <p>Id: ${producto.id_producto} / Nombre: ${producto.nombre_producto} / <strong>Precio: $${producto.precio_producto}</strong></p>
+                            <img src="${imageUrl}" alt="${imageAlt}" class="img-listados">
+                        </div>
+                        <div class="li-listados_boton">
+                            <input class="listados_boton" id="deleteProduct_button" type="button" value="Eliminar producto">
+                        </div>
+                    </li>
+                `;
+                getId_lista.innerHTML = htmlProducto;
+
+                let deleteProduct_button = document.getElementById("deleteProduct_button");
+                if (deleteProduct_button) {
+                    deleteProduct_button.addEventListener("click", function(event) {
+                        event.stopPropagation();
+    
+                        let confirmacion = confirm("¿Querés eliminar este producto?");
+
+                        if (!confirmacion) {
+                            alert("Eliminación cancelada"); 
+                        } else {
+                            eliminarProducto(producto.id_producto);
+                        }
+                    });
+                } else {
+                    console.error("Error: Botón de eliminar producto no encontrado.");
+                }
+
+            } catch (error) {
+                console.error("Error al obtener el producto: ", error);
+                getId_lista.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        });
+
+        async function eliminarProducto(id) {
+            try {
+                let response = await fetch(`${url}/products/${id}`, {
+                    method: "DELETE"
+                });
+
+                let result = await response.json();
+
+                if(response.ok) {
+                    alert(result.message); 
+                    getId_lista.innerHTML = "";
+                    return true;
+                } else {
+                    console.error("Error:", result.message);
+                    alert(`Ocurrió un error al eliminar un producto: ${result.message}`); 
+                    return false;
+                }
+            } catch (error) {
+                console.error("Error en la solicitud DELETE:", error);
+                alert(`Ocurrió un error al eliminar un producto: ${error.message}`); 
+                return false;
+            }
+        }
+    });
+</script>

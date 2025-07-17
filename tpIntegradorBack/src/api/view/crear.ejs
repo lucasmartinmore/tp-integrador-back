@@ -6,27 +6,38 @@
     <hr>
 
     <main id="contenedor-post">
-        <script src="./js/crear.js"></script>
+        <!-- Descripción:
+        Este es el formulario HTML para crear un nuevo producto.
+        Recoge la información del usuario (categoría, imagen, nombre, precio, descripción y stock)
+        y la envía al backend a través de una solicitud POST.-->
+
         <div id="altaProducts-container" class="crudForm-container">
             <h2>Alta producto</h2>
 
             <form id="altaProducts-form" autocomplete="off">
 
-                <label for="categoryProd">Categoria</label>
-                <select name="category" id="categoryProd" required>
-                    <option value="food">food</option>
-                    <option value="drink">drink</option>
+                <label for="tipoProd">Categoría (Tipo de Producto)</label>
+                <select name="tipo_producto" id="tipoProd" required>
+                    <option value="Instrumentos">Instrumentos</option>
+                    <option value="Vinilos">Vinilos</option>
+
                 </select>
 
-                <label for="imagenProd">Imagen</label>
-                <input type="text" name="image" id="imagenProd" required>
+                <label for="imagenProd">Imagen (URL)</label>
 
-                <label for="nombreUser">Nombre</label>
-                <input type="text" name="name" id="nombreUser" required>
+                <input type="text" name="imagen_producto" id="imagenProd" required>
+
+                <label for="nombreProd">Nombre del Producto</label>
+                <input type="text" name="nombre_producto" id="nombreProd" required>
 
                 <label for="precioProd">Precio</label>
-                <input type="number" name="price" id="precioProd" required>
+                <input type="number" name="precio_producto" id="precioProd" required>
 
+                <label for="descripcionProd">Descripción</label>
+                <textarea name="descripcion_producto" id="descripcionProd" rows="3"></textarea>
+
+                <label for="stockProd">Stock</label>
+                <input type="number" name="stock_producto" id="stockProd" required>
                 
                 <input type="submit" value="Crear producto">
             </form>
@@ -35,3 +46,66 @@
     </main>
 
 <%- include("partials/footer.ejs") %>
+
+<script>
+    const url = "http://localhost:3000/api";
+    let altaProducts_form; // Declaramos aquí, asignaremos dentro de DOMContentLoaded
+
+    // Aseguramos que el DOM esté completamente cargado antes de ejecutar el script.
+    document.addEventListener('DOMContentLoaded', () => {
+        altaProducts_form = document.getElementById("altaProducts-form");
+
+        if (!altaProducts_form) {
+            console.error("Error: Elemento 'altaProducts-form' no encontrado.");
+            return;
+        }
+
+        altaProducts_form.addEventListener("submit", async(event) => {
+
+            event.preventDefault(); // Evitamos el envio por defecto del formulario
+
+            let formData = new FormData(event.target); // Obtenemos la data del formulario
+
+            // Convertimos a objeto JS nuestro objeto formulario
+            let data = Object.fromEntries(formData.entries()); 
+            console.log("Datos del formulario a enviar:", data); 
+
+            // Validamos datos previamente en el cliente
+            // Validar con los nuevos nombres de campos
+            if(!data.nombre_producto || !data.imagen_producto || !data.precio_producto || !data.tipo_producto || data.descripcion_producto === undefined || data.stock_producto === undefined) {
+                alert("Todos los campos (nombre, imagen, precio, categoría, descripción, stock) son obligatorios!"); 
+                return;
+            }
+
+            try {
+                let response = await fetch(`${url}/products`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(data) 
+                });
+
+                if(response.ok) {
+                    console.log("Respuesta exitosa:", response);
+
+                    let result = await response.json();
+                    console.log("Mensaje del servidor:", result.message);
+                    alert(result.message);
+                    // Opcional: Limpiar el formulario después de un envío exitoso
+                    event.target.reset(); 
+
+                } else {
+                    let error = await response.json();
+                    console.error("Error del servidor:", error.message);
+                    alert(`Error al crear producto: ${error.message}`);
+                }
+
+            } catch (error) { 
+                console.error("Error al enviar los datos:", error);
+                alert("Error al enviar la solicitud: " + error.message);
+            }
+
+        });
+    });
+</script>

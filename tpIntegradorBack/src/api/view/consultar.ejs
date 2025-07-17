@@ -6,6 +6,12 @@
     <hr>
 
     <main id="contenedor-get">
+        <!-- 
+        Esta es la página HTML/EJS para consultar un producto por su ID.
+        Permite al usuario ingresar un ID de producto en un formulario.
+        El script JavaScript incrustado maneja la solicitud a la API del backend,
+        muestra el producto encontrado o un mensaje de error si no se encuentra.
+        -->
         <div id="productos-container" class="crudForm-container">
             <h2>Consultar producto</h2>
 
@@ -23,5 +29,79 @@
         </div>
     </main>
     
-    <script src="/js/consultar.js"></script>
+    <script>
+        const url = "http://localhost:3000/api";
+        let getProduct_form; 
+        let getId_lista;     
+
+        // Asegura que el DOM está completamente cargado antes de ejecutar el script
+        document.addEventListener('DOMContentLoaded', () => {
+            getProduct_form = document.getElementById("getProduct-form");
+            getId_lista = document.getElementById("getId-list");
+
+            // Verificar si los elementos existen antes de añadir listeners
+            if (!getProduct_form) {
+                console.error("Error: Elemento 'getProduct-form' no encontrado.");
+                return; 
+            }
+            if (!getId_lista) {
+                console.error("Error: Elemento 'getId-list' no encontrado.");
+                return; 
+            }
+
+            getProduct_form.addEventListener("submit", async (event) => {
+                event.preventDefault();
+
+                try {
+                    getId_lista.innerHTML = "<p>Cargando producto...</p>";
+
+                    let formData = new FormData(event.target);
+                    let data = Object.fromEntries(formData.entries());
+                    let idProd = data.idProd.trim();
+
+                    if (!idProd) {
+                        throw new Error(`El ID del producto no puede estar vacío.`);
+                    }
+
+                    let response = await fetch(`${url}/products/${idProd}`);
+                    let datos = await response.json(); 
+
+                    console.log("Datos recibidos de la API:", datos);
+
+                    // Verificar si la respuesta de la API es un error o si el payload está vacío
+                    if (!response.ok || !datos.payload || datos.payload.length === 0) {
+                        getId_lista.innerHTML = `<p style="color: orange;">Producto con ID ${idProd} no encontrado.</p>`;
+                        console.warn(`Producto con ID ${idProd} no encontrado en la base de datos o error en la respuesta.`);
+                        return; 
+                    }
+
+                    let producto = datos.payload[0]; 
+                    console.log("Objeto producto encontrado:", producto);
+
+                    // Verificación adicional: asegurarse de que el producto sea un objeto válido
+                    if (!producto || typeof producto !== 'object') {
+                        throw new Error("Formato de datos de producto inesperado de la API.");
+                    }
+
+                    // Asegurarse de que 'imagen_producto' sea una string válida para el 'src' del <img>
+                    const imageUrl = producto.imagen_producto && producto.imagen_producto !== '' ? producto.imagen_producto : '/img/placeholder.png';
+                    const imageAlt = producto.nombre_producto || 'Producto';
+
+                    let htmlProducto = `
+                        <li id="producto-encontrado" class="li-listados productos-listados">
+                            <img src="${imageUrl}" alt="${imageAlt}" class="img-listados">
+                            <p>Id: ${producto.id_producto} / Nombre: ${producto.nombre_producto} / <strong>Precio: ${producto.precio_producto}$</strong></p>
+                        </li>
+                    `;
+
+                    getId_lista.innerHTML = htmlProducto;
+
+                } catch (error) {
+                    console.error("Error al obtener el producto: ", error);
+                    getId_lista.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                }
+            });
+        }); 
+    </script>
+
 <%- include("partials/footer.ejs") %>
